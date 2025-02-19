@@ -74,6 +74,7 @@ def go(args):
     ######################################
     # Fit the pipeline sk_pipe by calling the .fit method on X_train and y_train
     # YOUR CODE HERE
+    sk_pipe.fit(X_train, y_train)
     ######################################
 
     # Compute r2 and MAE
@@ -97,6 +98,22 @@ def go(args):
     # HINT: use mlflow.sklearn.save_model
     mlflow.sklearn.save_model(
         # YOUR CODE HERE
+    export_path = "random_forest_dir"
+    logger.info(f"processed_features {processed_features}")
+    logger.info(f"X_val[processed_features] {X_val[processed_features]}")
+    
+    logger.info("Exporting inference pipeline")
+    
+    for col in X_val[processed_features].select_dtypes(include=['object']).columns:
+        X_val[col] = X_val[col].astype('string')
+    
+    signature = mlflow.models.infer_signature(X_val[processed_features], y_pred)
+
+    mlflow.sklearn.save_model(
+        sk_pipe,
+        export_path,
+        signature=signature,
+        serialization_format=mlflow.sklearn.SERIALIZATION_FORMAT_CLOUDPICKLE,
         input_example = X_train.iloc[:5]
     )
     ######################################
@@ -120,6 +137,7 @@ def go(args):
     run.summary['r2'] = r_squared
     # Now save the variable mae under the key "mae".
     # YOUR CODE HERE
+    run.summary['mae'] = mae
     ######################################
 
     # Upload to W&B the feture importance visualization
@@ -163,6 +181,8 @@ def get_inference_pipeline(rf_config, max_tfidf_features):
     # 2 - A OneHotEncoder() step to encode the variable
     non_ordinal_categorical_preproc = make_pipeline(
         # YOUR CODE HERE
+        SimpleImputer(strategy="most_frequent"),
+        OneHotEncoder()
     )
     ######################################
 
@@ -226,6 +246,8 @@ def get_inference_pipeline(rf_config, max_tfidf_features):
     sk_pipe = Pipeline(
         steps =[
         # YOUR CODE HERE
+            ("preprocessor", preprocessor),
+            ("random_forest", random_Forest)
         ]
     )
 
